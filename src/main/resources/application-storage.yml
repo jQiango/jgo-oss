@@ -13,6 +13,11 @@ spring:
       static-locations: classpath:/static/
       add-mappings: true
 
+  # MVC配置
+  mvc:
+    throw-exception-if-no-handler-found: false
+    static-path-pattern: /**
+
   # 文件上传配置
   servlet:
     multipart:
@@ -29,19 +34,6 @@ spring:
 storage:
   # 默认使用的存储后端
   default-backend: lianjia-s3
-
-  # 存储后端配置
-  backends:
-    # 链家 S3 存储
-    lianjia-s3:
-      name: zqt-data-daily
-      type: S3
-      endpoint: https://storage.lianjia.com
-      access-key-id: 55DIWBJB0X4U249D8DD0
-      access-key-secret: 52NLJIBoVrGtC25xpIeREclO25pXIdjGEYtM83vT
-      region: ap-beijing
-      default-bucket: zqt-data-daily
-      enabled: true
 
   upload:
     max-file-size: 104857600  # 100MB

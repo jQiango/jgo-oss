@@ -44,3 +44,4 @@ logs/
 /CLAUDE.md
 /.claude/
 *.md
+application-storage.yml

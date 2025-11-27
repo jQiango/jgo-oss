@@ -44,6 +44,7 @@ public class S3ClientUtil {
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(true)
+                        .chunkedEncodingEnabled(false)  // 禁用分块编码，兼容某些S3实现
                         .build());
         
         // 如果提供了端点，使用自定义端点

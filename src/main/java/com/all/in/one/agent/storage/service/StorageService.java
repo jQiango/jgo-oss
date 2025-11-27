@@ -29,6 +29,11 @@ public interface StorageService {
     StorageConfigProperties.Backend getDefaultBackend();
 
     /**
+     * 获取默认后端的key（配置文件中的key，不是显示名称）
+     */
+    String getDefaultBackendKey();
+
+    /**
      * 测试存储配置连接
      */
     boolean testConnection(String backendName);

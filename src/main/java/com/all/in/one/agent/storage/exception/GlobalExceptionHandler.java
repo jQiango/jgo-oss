@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -66,6 +67,24 @@ public class GlobalExceptionHandler {
         return Result.error(message);
     }
     
+    /**
+     * 处理静态资源未找到异常（忽略favicon.ico等常见请求）
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFoundException(NoResourceFoundException e) {
+        String resourcePath = e.getResourcePath();
+        // 忽略favicon等常见浏览器自动请求的资源
+        if (resourcePath != null && (resourcePath.contains("favicon") || resourcePath.contains(".ico"))) {
+            // 只记录debug级别日志，不打印错误堆栈
+            log.debug("浏览器请求常见图标文件: {}", resourcePath);
+            return Result.error("资源未找到");
+        }
+        // 其他资源404记录警告
+        log.warn("静态资源未找到: {}", resourcePath);
+        return Result.error("资源未找到");
+    }
+
     /**
      * 处理其他异常
      */

@@ -67,6 +67,15 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
+    public String getDefaultBackendKey() {
+        String defaultBackendKey = configProperties.getDefaultBackend();
+        if (defaultBackendKey == null || defaultBackendKey.isEmpty()) {
+            throw new RuntimeException("未配置默认存储后端");
+        }
+        return defaultBackendKey;
+    }
+
+    @Override
     public boolean testConnection(String backendName) {
         try {
             StorageConfigProperties.Backend backend = getBackend(backendName);
@@ -190,7 +199,8 @@ public class StorageServiceImpl implements StorageService {
             log.debug("开始获取文件列表 - backend: {}, bucket: {}, prefix: {}, delimiter: {}",
                     listDTO.getBackendName(), bucketName, listDTO.getPrefix(), listDTO.getDelimiter());
 
-            var requestBuilder = ListObjectsV2Request.builder()
+            // 使用V1 API（ListObjects）因为链家S3的V2 API不返回CommonPrefixes
+            var requestBuilder = ListObjectsRequest.builder()
                     .bucket(bucketName)
                     .maxKeys(listDTO.getPageSize() != null ? listDTO.getPageSize() : listDTO.getMaxKeys());
 
@@ -205,16 +215,16 @@ public class StorageServiceImpl implements StorageService {
             }
 
             if (listDTO.getContinuationToken() != null && !listDTO.getContinuationToken().isEmpty()) {
-                requestBuilder = requestBuilder.continuationToken(listDTO.getContinuationToken());
+                requestBuilder = requestBuilder.marker(listDTO.getContinuationToken());  // V1使用marker代替continuationToken
                 log.debug("设置继续标记: {}", listDTO.getContinuationToken());
             }
 
-            ListObjectsV2Request request = requestBuilder.build();
+            ListObjectsRequest request = requestBuilder.build();
             log.debug("S3请求参数: {}", request);
 
-            ListObjectsV2Response response = s3Client.listObjectsV2(request);
+            ListObjectsResponse response = s3Client.listObjects(request);
 
-            log.debug("S3响应 - 文件数量: {}, 文件夹数量: {}, 是否截断: {}",
+            log.debug("S3响应 - 文件数: {}, 文件夹数: {}, 截断: {}",
                     response.contents().size(),
                     response.commonPrefixes() != null ? response.commonPrefixes().size() : 0,
                     response.isTruncated());
@@ -248,8 +258,11 @@ public class StorageServiceImpl implements StorageService {
                 }
             }
             // 补充：包含空目录占位对象（key 以 '/' 结尾且直接位于当前前缀下）
+            // 以及 Size=0 的根级对象（rclone风格的文件夹标记，不带斜杠）
             for (S3Object obj : response.contents()) {
                 String key = obj.key();
+
+                // 处理带斜杠的文件夹标记（标准S3风格）
                 if (key.endsWith("/")) {
                     String relative = (listDTO.getPrefix() != null && !listDTO.getPrefix().isEmpty())
                             ? (key.startsWith(listDTO.getPrefix()) ? key.substring(listDTO.getPrefix().length()) : null)
@@ -267,32 +280,94 @@ public class StorageServiceImpl implements StorageService {
                         }
                     }
                 }
+                // 处理不带斜杠的文件夹标记（Size=0 且在根目录，rclone风格）
+                // 注意：只在没有prefix的情况下处理根级别的0字节对象作为文件夹
+                else if ((listDTO.getPrefix() == null || listDTO.getPrefix().isEmpty())
+                         && obj.size() != null && obj.size() == 0L
+                         && !key.contains("/")) {
+                    boolean exists = allFolders.stream().anyMatch(f ->
+                        key.equals(f.get("key")) || (key + "/").equals(f.get("key"))
+                    );
+                    if (!exists) {
+                        log.info("发现0字节文件夹标记: {}", key);
+                        Map<String, Object> folderInfo = new HashMap<>();
+                        folderInfo.put("key", key + "/"); // 添加斜杠以保持一致性
+                        folderInfo.put("name", key);
+                        folderInfo.put("isFolder", true);
+                        folderInfo.put("lastModified", obj.lastModified());
+                        folderInfo.put("size", 0L);
+                        allFolders.add(folderInfo);
+                    }
+                }
             }
             // 如果没有commonPrefixes，尝试从文件列表中提取
+            // 当数据被截断时，需要遍历所有页面以发现所有文件夹
             if (allFolders.isEmpty()) {
                 Set<String> folderSet = new HashSet<>();
-                for (S3Object obj : response.contents()) {
-                    String key = obj.key();
-                    if (key.contains("/")) {
-                        String folderPath;
-                        if (listDTO.getPrefix() == null || listDTO.getPrefix().isEmpty()) {
-                            folderPath = key.substring(0, key.indexOf("/") + 1);
-                        } else {
-                            if (key.startsWith(listDTO.getPrefix())) {
-                                String relativePath = key.substring(listDTO.getPrefix().length());
-                                if (relativePath.contains("/")) {
-                                    String subFolder = relativePath.substring(0, relativePath.indexOf("/") + 1);
-                                    folderPath = listDTO.getPrefix() + subFolder;
+                String marker = null;
+                int pageCount = 0;
+                int maxPages = 100; // 安全限制，避免无限循环
+                ListObjectsResponse currentResponse = response;
+
+                log.debug("开始提取文件夹（分页模式），数据截断: {}", currentResponse.isTruncated());
+
+                do {
+                    pageCount++;
+                    log.info("处理第 {} 页，文件数: {}", pageCount, currentResponse.contents().size());
+
+                    // 从当前页提取文件夹
+                    for (S3Object obj : currentResponse.contents()) {
+                        String key = obj.key();
+
+                        // 方法1：从包含斜杠的路径中提取文件夹前缀
+                        if (key.contains("/")) {
+                            String folderPath;
+                            if (listDTO.getPrefix() == null || listDTO.getPrefix().isEmpty()) {
+                                folderPath = key.substring(0, key.indexOf("/") + 1);
+                            } else {
+                                if (key.startsWith(listDTO.getPrefix())) {
+                                    String relativePath = key.substring(listDTO.getPrefix().length());
+                                    if (relativePath.contains("/")) {
+                                        String subFolder = relativePath.substring(0, relativePath.indexOf("/") + 1);
+                                        folderPath = listDTO.getPrefix() + subFolder;
+                                    } else {
+                                        continue;
+                                    }
                                 } else {
                                     continue;
                                 }
-                            } else {
-                                continue;
+                            }
+                            folderSet.add(folderPath);
+                        }
+                        // 方法2：0字节对象作为文件夹标记（rclone风格）
+                        else if (obj.size() != null && obj.size() == 0L && !key.endsWith("/")) {
+                            // 检查是否在当前前缀下
+                            if (listDTO.getPrefix() == null || listDTO.getPrefix().isEmpty() || key.startsWith(listDTO.getPrefix())) {
+                                String folderPath = key + "/";
+                                folderSet.add(folderPath);
+                                log.info("发现0字节文件夹标记: {}", key);
                             }
                         }
-                        folderSet.add(folderPath);
                     }
-                }
+
+                    // 如果还有更多数据，继续获取下一页 (V1 API使用marker)
+                    if (currentResponse.isTruncated() && pageCount < maxPages) {
+                        marker = currentResponse.nextMarker();
+                        log.info("数据被截断，获取下一页，marker: {}", marker);
+
+                        ListObjectsRequest nextRequest = requestBuilder
+                                .marker(marker)
+                                .build();
+                        currentResponse = s3Client.listObjects(nextRequest);
+                    } else {
+                        break;
+                    }
+
+                } while (currentResponse.isTruncated() && pageCount < maxPages);
+
+                log.info("文件夹提取完成，总共处理 {} 页，发现 {} 个唯一文件夹", pageCount, folderSet.size());
+
+                // 转换folderSet为文件夹信息列表
                 for (String folderPath : folderSet) {
                     String folderName = folderPath;
                     if (listDTO.getPrefix() != null && !listDTO.getPrefix().isEmpty()) {
@@ -311,17 +386,31 @@ public class StorageServiceImpl implements StorageService {
                         allFolders.add(folderInfo);
                     }
                 }
+
+                log.debug("文件夹提取完成，共 {} 个", allFolders.size());
             }
 
             // 提取当前目录下的文件
+            // 注意：当设置了delimiter='/'时，S3 API已经自动过滤了子目录中的文件
+            // contents只包含当前prefix下的直接文件，不包括子目录中的文件
+            // 因此我们不需要再做额外的过滤，信任S3返回的结果即可
             for (S3Object obj : response.contents()) {
                 String key = obj.key();
-                if (key.endsWith("/")) continue;
-                if (listDTO.getPrefix() != null && key.equals(listDTO.getPrefix())) continue;
-                if (listDTO.getPrefix() != null && !listDTO.getPrefix().isEmpty()) {
-                    String relativePath = key.substring(listDTO.getPrefix().length());
-                    if (relativePath.contains("/")) continue;
+
+                // 跳过文件夹占位符（以/结尾的对象）
+                if (key.endsWith("/")) {
+                    continue;
                 }
+
+                // 跳过prefix本身（如果prefix是一个文件）
+                if (listDTO.getPrefix() != null && key.equals(listDTO.getPrefix())) {
+                    continue;
+                }
+
+                // ✅ 移除了错误的客户端过滤逻辑
+                // S3的delimiter机制已经保证了contents只包含当前层级的文件
+                // 不需要再检查 relativePath.contains("/")
+
                 Map<String, Object> fileInfo = convertToFileInfo(obj);
                 fileInfo.put("isFolder", false);
                 allFiles.add(fileInfo);
@@ -335,7 +424,7 @@ public class StorageServiceImpl implements StorageService {
             int pageSize = listDTO.getPageSize() != null ? listDTO.getPageSize() : (listDTO.getMaxKeys() != null ? listDTO.getMaxKeys() : 100);
             pagination.put("pageSize", pageSize);
             pagination.put("hasMore", response.isTruncated());
-            pagination.put("nextContinuationToken", response.nextContinuationToken());
+            pagination.put("nextContinuationToken", response.nextMarker());  // V1 API使用nextMarker
             pagination.put("currentCount", pageFolders.size() + pageFiles.size());
             pagination.put("folderCount", pageFolders.size());
             pagination.put("fileCount", pageFiles.size());
@@ -343,6 +432,9 @@ public class StorageServiceImpl implements StorageService {
             result.put("folders", pageFolders);
             result.put("files", pageFiles);
             result.put("pagination", pagination);
+
+            log.info("文件列表获取成功 - 文件夹: {}, 文件: {}", pageFolders.size(), pageFiles.size());
+
             return result;
 
         } catch (Exception e) {

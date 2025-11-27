@@ -1,432 +1,756 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S3 文件管理系统</title>
+    <title>S3 云管理器</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
-    <!-- Element Plus CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/element-plus@2.4.4/dist/index.css">
+    <!-- Bootstrap Icons - BootCDN -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Element Plus Icons -->
-    <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue@2.1.0/dist/index.css">
+    <!-- Tailwind CSS - 使用官方 CDN（通过 script 标签） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* v-cloak: 防止Vue未加载完成时显示未编译的模板 */
+        [v-cloak] {
+            display: none !important;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f5f7fa;
+        .bi {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
         }
 
-        #app {
-            min-height: 100vh;
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 3px;
+        }
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #374151;
         }
 
-        .header {
-            background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
-            color: white;
-            padding: 20px 30px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        @keyframes slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .toolbar {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .toolbar-left {
-            display: flex;
-            gap: 10px;
-            flex: 1;
-        }
-
-        .toolbar-right {
-            display: flex;
-            gap: 10px;
-        }
-
-        .breadcrumb-container {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .file-table-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-
-        .file-icon {
-            font-size: 20px;
-            margin-right: 8px;
-        }
-
-        .folder-icon {
-            color: #f39c12;
-        }
-
-        .file-name {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-
-        .file-name:hover {
-            color: #409EFF;
-        }
-
-        .stats-bar {
-            background: #f5f7fa;
-            padding: 12px 20px;
-            border-top: 1px solid #e4e7ed;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            color: #606266;
-        }
-
-        .upload-area {
-            border: 2px dashed #d9d9d9;
-            border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .upload-area:hover,
-        .upload-area.drag-over {
-            border-color: #409EFF;
-            background-color: #ecf5ff;
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            color: #c0c4cc;
-            margin-bottom: 10px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #909399;
-        }
-
-        .empty-state i {
-            font-size: 80px;
-            color: #dcdfe6;
-            margin-bottom: 20px;
-        }
-
-        /* Element Plus 样式覆盖 */
-        .el-table .el-table__cell {
-            padding: 12px 0;
-        }
-
-        .el-breadcrumb {
-            font-size: 15px;
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
         }
     </style>
 </head>
-<body>
-    <div id="app">
-        <!-- 顶部导航 -->
-        <div class="header">
-            <div class="header-content">
-                <div class="header-title">
-                    <i class="el-icon-folder-opened"></i>
-                    <span>S3 文件管理系统</span>
+<body class="h-full overflow-hidden">
+    <div id="app" v-cloak class="flex h-screen w-full bg-gray-50 dark:bg-gray-950 text-slate-800 dark:text-gray-100 transition-colors duration-200">
+        <!-- 侧边栏 -->
+        <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full flex-shrink-0">
+            <!-- Logo -->
+            <div class="p-6 pb-2">
+                <div class="flex items-center gap-3 px-2 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-lg shrink-0">
+                        <i class="bi bi-cloud-fill text-xl"></i>
+                    </div>
+                    <span class="font-bold text-lg text-gray-900 dark:text-white tracking-tight">S3 云管理器</span>
                 </div>
-                <div class="header-actions">
-                    <el-select
-                        v-model="currentBucket"
-                        placeholder="选择存储桶"
-                        @change="onBucketChange"
-                        style="width: 200px;"
-                        size="large">
-                        <el-option
+
+                <!-- 导航 -->
+                <nav class="flex flex-col gap-1">
+                    <p class="px-3 py-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">菜单</p>
+                    <button
+                        @click="currentView = 'files'"
+                        :class="currentView === 'files' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200">
+                        <i class="bi bi-folder"></i>
+                        文件管理
+                    </button>
+                </nav>
+            </div>
+
+            <!-- 存储桶列表 -->
+            <div class="flex-1 px-6 overflow-y-auto min-h-0 scrollbar-thin">
+                <div class="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center justify-between mb-2 px-2">
+                        <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">存储桶</p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <button
                             v-for="bucket in buckets"
                             :key="bucket"
-                            :label="bucket"
-                            :value="bucket">
-                        </el-option>
-                    </el-select>
-                    <el-button
-                        type="info"
-                        :icon="Refresh"
-                        @click="loadFiles"
-                        circle
-                        size="large">
-                    </el-button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 主要内容区域 -->
-        <div class="container">
-            <!-- 工具栏 -->
-            <div class="toolbar">
-                <div class="toolbar-left">
-                    <el-input
-                        v-model="searchKeyword"
-                        placeholder="搜索文件..."
-                        :prefix-icon="Search"
-                        @keyup.enter="handleSearch"
-                        style="width: 300px;">
-                    </el-input>
-                    <el-button :icon="Search" @click="handleSearch">搜索</el-button>
-                </div>
-                <div class="toolbar-right">
-                    <el-button
-                        type="primary"
-                        :icon="FolderAdd"
-                        @click="showCreateFolderDialog">
-                        新建文件夹
-                    </el-button>
-                    <el-button
-                        type="success"
-                        :icon="Upload"
-                        @click="showUploadDialog">
-                        上传文件
-                    </el-button>
-                    <el-button
-                        type="danger"
-                        :icon="Delete"
-                        @click="handleBatchDelete"
-                        :disabled="selectedFiles.length === 0">
-                        删除 ({{ selectedFiles.length }})
-                    </el-button>
-                </div>
-            </div>
-
-            <!-- 面包屑导航 -->
-            <div class="breadcrumb-container" v-if="currentBucket">
-                <el-breadcrumb separator="/">
-                    <el-breadcrumb-item @click="navigateToPath('')">
-                        <el-icon><HomeFilled /></el-icon>
-                        根目录
-                    </el-breadcrumb-item>
-                    <el-breadcrumb-item
-                        v-for="(part, index) in pathParts"
-                        :key="index"
-                        @click="navigateToPath(getPathUpTo(index))">
-                        {{ part }}
-                    </el-breadcrumb-item>
-                </el-breadcrumb>
-            </div>
-
-            <!-- 文件列表 -->
-            <div class="file-table-container">
-                <el-table
-                    :data="sortedFiles"
-                    v-loading="loading"
-                    @selection-change="handleSelectionChange"
-                    style="width: 100%"
-                    :default-sort="{ prop: 'name', order: 'ascending' }"
-                    :height="tableHeight">
-                    <el-table-column type="selection" width="55"></el-table-column>
-
-                    <el-table-column label="名称" min-width="400" sortable>
-                        <template #default="scope">
-                            <div class="file-name" @click="handleFileClick(scope.row)">
-                                <i
-                                    :class="getFileIcon(scope.row)"
-                                    class="file-icon">
-                                </i>
-                                <span>{{ scope.row.name }}</span>
+                            @click="selectBucket(bucket)"
+                            :class="currentBucket === bucket ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'"
+                            class="w-full px-3 py-2 rounded-lg text-left flex items-center gap-3 transition-all duration-200 group">
+                            <i class="text-xl bi bi-database" :class="currentBucket === bucket ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium truncate">{{ bucket }}</p>
                             </div>
-                        </template>
-                    </el-table-column>
-
-                    <el-table-column label="大小" width="120" sortable prop="size">
-                        <template #default="scope">
-                            {{ scope.row.isFolder ? '-' : formatFileSize(scope.row.size) }}
-                        </template>
-                    </el-table-column>
-
-                    <el-table-column label="修改时间" width="200" sortable prop="lastModified">
-                        <template #default="scope">
-                            {{ formatDate(scope.row.lastModified) }}
-                        </template>
-                    </el-table-column>
-
-                    <el-table-column label="操作" width="150" fixed="right">
-                        <template #default="scope">
-                            <el-button
-                                v-if="!scope.row.isFolder"
-                                type="primary"
-                                :icon="Download"
-                                link
-                                @click="downloadFile(scope.row)">
-                                下载
-                            </el-button>
-                            <el-button
-                                type="danger"
-                                :icon="Delete"
-                                link
-                                @click="deleteFile(scope.row)">
-                                删除
-                            </el-button>
-                        </template>
-                    </el-table-column>
-                </el-table>
-
-                <!-- 空状态 -->
-                <div v-if="!loading && files.length === 0" class="empty-state">
-                    <el-icon><FolderOpened /></el-icon>
-                    <p style="font-size: 18px; margin-top: 10px;">暂无文件</p>
-                    <p style="font-size: 14px; margin-top: 5px;">点击上传按钮添加文件</p>
-                </div>
-
-                <!-- 统计栏和分页 -->
-                <div class="stats-bar" v-if="files.length > 0">
-                    <div>
-                        已选择 <strong>{{ selectedFiles.length }}</strong> 项 |
-                        共 <strong>{{ totalCount }}</strong> 个文件
+                            <div v-if="currentBucket === bucket" class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                        </button>
                     </div>
-                    <el-pagination
-                        v-if="pagination.hasMore || pagination.currentPage > 1"
-                        small
-                        background
-                        layout="prev, pager, next"
-                        :current-page="pagination.currentPage"
-                        :page-size="pagination.pageSize"
-                        :total="pagination.total"
-                        @current-change="handlePageChange">
-                    </el-pagination>
                 </div>
             </div>
-        </div>
+
+            <!-- 主题切换 -->
+            <div class="p-6 pt-3 border-t border-gray-200 dark:border-gray-800">
+                <button
+                    @click="toggleTheme"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="bi" :class="isDarkMode ? 'bi-moon-stars-fill' : 'bi-sun-fill'"></i>
+                        <span class="text-sm font-medium">{{ isDarkMode ? '暗黑模式' : '明亮模式' }}</span>
+                    </div>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 flex flex-col min-w-0 relative">
+            <!-- 文件列表视图 -->
+            <div class="flex-1 flex flex-col bg-white dark:bg-gray-900 h-full overflow-hidden">
+                <!-- 工具栏 -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                    <!-- 面包屑 -->
+                    <nav class="flex items-center text-sm text-gray-500 dark:text-gray-400 overflow-hidden whitespace-nowrap flex-1 mr-4">
+                        <button @click="navigateToPath('')" class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <i class="bi bi-house-fill text-lg"></i>
+                            根目录
+                        </button>
+                        <template v-for="(part, index) in pathParts" :key="index">
+                            <span class="mx-1 text-gray-300 dark:text-gray-600">/</span>
+                            <button @click="navigateToPath(getPathUpTo(index))" class="px-2 py-1 rounded-md font-medium hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                {{ part }}
+                            </button>
+                        </template>
+                    </nav>
+
+                    <!-- 工具按钮 -->
+                    <div class="flex items-center gap-2">
+                        <div class="relative group">
+                            <input
+                                type="text"
+                                placeholder="搜索..."
+                                v-model="searchKeyword"
+                                @keyup.enter="handleSearch"
+                                class="pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-48">
+                            <i class="bi bi-search absolute left-2.5 top-2 text-gray-400 text-lg"></i>
+                        </div>
+                        <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                        <button
+                            @click="viewMode = 'list'"
+                            :class="viewMode === 'list' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'"
+                            class="p-2 rounded-lg transition-colors"
+                            title="列表视图">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                        <button
+                            @click="viewMode = 'grid'"
+                            :class="viewMode === 'grid' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'"
+                            class="p-2 rounded-lg transition-colors"
+                            title="网格视图">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 列表视图 -->
+                <template v-if="viewMode === 'list'">
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                        <div class="col-span-5">名称</div>
+                        <div class="col-span-2">大小</div>
+                        <div class="col-span-2">最后修改</div>
+                        <div class="col-span-3 text-right">操作</div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto scrollbar-thin">
+                        <!-- 加载状态 -->
+                        <div v-if="loading" class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="bi bi-arrow-clockwise text-6xl mb-2 opacity-20 animate-spin"></i>
+                            <p class="text-sm">加载中...</p>
+                        </div>
+                        <!-- 空状态 -->
+                        <div v-else-if="displayFiles.length === 0" class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="bi bi-folder2-open text-6xl mb-2 opacity-20"></i>
+                            <p class="text-sm">未找到文件</p>
+                        </div>
+                        <!-- 文件列表 -->
+                        <div
+                            v-for="file in displayFiles"
+                            :key="file.key"
+                            @click="handleFileClick(file)"
+                            :class="selectedFile?.key === file.key ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800/30 border-l-4 border-l-transparent'"
+                            class="group grid grid-cols-12 gap-4 px-6 py-3 items-center border-b border-gray-50 dark:border-gray-800/50 cursor-pointer">
+                            <div class="col-span-5 flex items-center gap-3 min-w-0">
+                                <i :class="[getFileIcon(file), getFileColor(file)]" class="bi text-2xl"></i>
+                                <span class="truncate font-medium">{{ file.name }}</span>
+                            </div>
+                            <div class="col-span-2 text-sm text-gray-500 dark:text-gray-400">
+                                {{ file.isFolder ? '--' : formatFileSize(file.size) }}
+                            </div>
+                            <div class="col-span-2 text-sm text-gray-500 dark:text-gray-400">
+                                {{ file.isFolder ? '--' : formatDate(file.lastModified) }}
+                            </div>
+                            <div class="col-span-3 flex justify-end gap-1 opacity-0 group-hover:opacity-100">
+                                <button
+                                    v-if="!file.isFolder"
+                                    @click.stop="downloadFile(file)"
+                                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-600 dark:text-gray-400 hover:text-blue-600"
+                                    title="下载">
+                                    <i class="bi bi-download text-lg"></i>
+                                </button>
+                                <button
+                                    @click.stop="showFileDetail(file)"
+                                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-600 dark:text-gray-400 hover:text-blue-600"
+                                    title="详情">
+                                    <i class="bi bi-info-circle text-lg"></i>
+                                </button>
+                                <button
+                                    @click.stop="deleteFile(file)"
+                                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-600 dark:text-gray-400 hover:text-red-600"
+                                    title="删除">
+                                    <i class="bi bi-trash text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 网格视图 -->
+                <template v-if="viewMode === 'grid'">
+                    <div class="flex-1 overflow-y-auto scrollbar-thin p-6">
+                        <div v-if="loading" class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="bi bi-arrow-clockwise text-6xl mb-2 opacity-20 animate-spin"></i>
+                            <p class="text-sm">加载中...</p>
+                        </div>
+                        <div v-else-if="displayFiles.length === 0" class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="bi bi-folder2-open text-6xl mb-2 opacity-20"></i>
+                            <p class="text-sm">未找到文件</p>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            <div
+                                v-for="file in displayFiles"
+                                :key="file.key"
+                                @click="handleFileClick(file)"
+                                class="group flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer">
+                                <i :class="[getFileIcon(file), getFileColor(file)]" class="bi text-5xl mb-2"></i>
+                                <p class="text-sm font-medium text-center truncate w-full" :title="file.name">{{ file.name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ file.isFolder ? '--' : formatFileSize(file.size) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- 悬浮操作按钮 -->
+            <div class="absolute bottom-8 right-8 flex gap-3 z-30">
+                <button
+                    @click="showUploadDialog = true"
+                    class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-full shadow-lg transition-transform hover:scale-105 font-medium">
+                    <i class="bi bi-cloud-upload"></i>
+                    上传文件
+                </button>
+                <button
+                    @click="showCreateFolderDialog = true"
+                    class="flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 w-12 h-12 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 transition-transform hover:scale-105"
+                    title="新建文件夹">
+                    <i class="bi bi-folder-plus"></i>
+                </button>
+            </div>
+        </main>
 
         <!-- 上传对话框 -->
-        <el-dialog
-            v-model="uploadDialogVisible"
-            title="上传文件"
-            width="600px"
-            :close-on-click-modal="false">
-            <div
-                class="upload-area"
-                :class="{ 'drag-over': dragOver }"
-                @click="$refs.fileInput.click()"
-                @dragover.prevent="dragOver = true"
-                @dragleave.prevent="dragOver = false"
-                @drop.prevent="handleFileDrop">
-                <el-icon class="upload-icon"><UploadFilled /></el-icon>
-                <p style="font-size: 16px; margin-bottom: 8px;">点击或拖拽文件到此处上传</p>
-                <p style="font-size: 12px; color: #909399;">支持单个或批量上传</p>
-            </div>
-            <input
-                ref="fileInput"
-                type="file"
-                multiple
-                style="display: none"
-                @change="handleFileSelect">
-
-            <!-- 文件列表 -->
-            <div v-if="uploadFiles.length > 0" style="margin-top: 20px;">
-                <el-divider>待上传文件 ({{ uploadFiles.length }})</el-divider>
-                <div v-for="(file, index) in uploadFiles" :key="index" style="margin-bottom: 8px;">
-                    <el-tag>{{ file.name }} ({{ formatFileSize(file.size) }})</el-tag>
-                    <el-button
-                        type="danger"
-                        link
-                        @click="removeUploadFile(index)"
-                        style="margin-left: 10px;">
-                        移除
-                    </el-button>
+        <div v-if="showUploadDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showUploadDialog = false">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold mb-4">上传文件</h3>
+                <input
+                    type="file"
+                    multiple
+                    @change="handleFileSelect"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                <div class="flex justify-end gap-3">
+                    <button @click="showUploadDialog = false" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">取消</button>
+                    <button @click="doUploadFiles" :disabled="uploadFiles.length === 0" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">上传</button>
                 </div>
             </div>
+        </div>
 
-            <template #footer>
-                <el-button @click="uploadDialogVisible = false">取消</el-button>
-                <el-button
-                    type="primary"
-                    @click="doUploadFiles"
-                    :loading="uploading"
-                    :disabled="uploadFiles.length === 0">
-                    开始上传
-                </el-button>
-            </template>
-        </el-dialog>
+        <!-- 创建文件夹对话框 -->
+        <div v-if="showCreateFolderDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showCreateFolderDialog = false">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold mb-4">新建文件夹</h3>
+                <input
+                    v-model="folderName"
+                    type="text"
+                    placeholder="请输入文件夹名称"
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg mb-4 bg-white dark:bg-gray-800">
+                <div class="flex justify-end gap-3">
+                    <button @click="showCreateFolderDialog = false" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">取消</button>
+                    <button @click="createFolder" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">创建</button>
+                </div>
+            </div>
+        </div>
 
-        <!-- 新建文件夹对话框 -->
-        <el-dialog
-            v-model="folderDialogVisible"
-            title="新建文件夹"
-            width="500px">
-            <el-form>
-                <el-form-item label="文件夹名称">
-                    <el-input
-                        v-model="folderName"
-                        placeholder="请输入文件夹名称"
-                        @keyup.enter="createFolder">
-                    </el-input>
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="folderDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="createFolder">创建</el-button>
-            </template>
-        </el-dialog>
+        <!-- 文件详情抽屉 -->
+        <div v-if="fileDetailVisible" class="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-900 shadow-2xl z-40">
+            <div class="h-full flex flex-col">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                    <h3 class="text-lg font-bold">文件详情</h3>
+                    <button @click="fileDetailVisible = false" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6" v-if="selectedFile">
+                    <div class="flex items-start gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                            <i :class="[getFileIcon(selectedFile), getFileColor(selectedFile)]" class="bi text-3xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold break-all mb-1">{{ selectedFile.name }}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 break-all">{{ selectedFile.key }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">文件大小</span>
+                            <span class="text-sm font-medium">{{ formatFileSize(selectedFile.size) }}</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b border-gray-100 dark:border-gray-800">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">最后修改</span>
+                            <span class="text-sm font-medium">{{ formatDate(selectedFile.lastModified) }}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            v-if="!selectedFile.isFolder"
+                            @click="downloadFile(selectedFile)"
+                            class="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="bi bi-download text-lg"></i>
+                            下载
+                        </button>
+                        <button
+                            @click="deleteFile(selectedFile)"
+                            class="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                            <i class="bi bi-trash text-lg"></i>
+                            删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast 通知 -->
+        <div class="fixed top-8 right-8 z-50 space-y-3">
+            <div v-for="toast in toasts" :key="toast.id" class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 min-w-80 animate-slide-in">
+                <i class="bi text-2xl" :class="{
+                    'bi-check-circle text-green-600': toast.type === 'success',
+                    'bi-x-circle text-red-600': toast.type === 'error',
+                    'bi-info-circle text-blue-600': toast.type === 'info'
+                }"></i>
+                <p class="flex-1 text-sm font-medium">{{ toast.message }}</p>
+                <button @click="removeToast(toast.id)" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg text-lg"></i>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Vue 3 -->
-    <script src="https://unpkg.com/vue@3.3.11/dist/vue.global.js"></script>
+    <!-- Vue 3 - BootCDN -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
 
-    <!-- Element Plus -->
-    <script src="https://unpkg.com/element-plus@2.4.4/dist/index.full.js"></script>
+    <!-- Axios - BootCDN -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.7/axios.min.js"></script>
 
-    <!-- Element Plus Icons -->
-    <script src="https://unpkg.com/@element-plus/icons-vue@2.1.0/dist/index.iife.js"></script>
+    <script>
+        // 检查配置，如果没有则跳转到配置页
+        const currentConfig = sessionStorage.getItem('current_s3_config');
+        if (!currentConfig) {
+            window.location.href = 'config.html';
+        }
 
-    <!-- Axios -->
-    <script src="https://unpkg.com/axios@1.6.2/dist/axios.min.js"></script>
+        const { createApp } = Vue;
 
-    <script src="/app.js"></script>
+        createApp({
+            data() {
+                return {
+                    currentView: 'files',
+                    isDarkMode: false,
+                    buckets: [],
+                    currentBucket: '',
+                    currentPath: '',
+                    files: [],
+                    selectedFile: null,
+                    loading: false,
+                    searchKeyword: '',
+                    viewMode: 'list',
+                    showUploadDialog: false,
+                    showCreateFolderDialog: false,
+                    fileDetailVisible: false,
+                    uploadFiles: [],
+                    folderName: '',
+                    toasts: [],
+                    toastId: 0
+                }
+            },
+            computed: {
+                pathParts() {
+                    if (!this.currentPath) return [];
+                    return this.currentPath.split('/').filter(part => part);
+                },
+                displayFiles() {
+                    let result = [...this.files];
+                    if (this.searchKeyword.trim()) {
+                        const keyword = this.searchKeyword.toLowerCase();
+                        result = result.filter(f => f.name.toLowerCase().includes(keyword));
+                    }
+                    result.sort((a, b) => {
+                        if (a.isFolder && !b.isFolder) return -1;
+                        if (!a.isFolder && b.isFolder) return 1;
+                        const timeA = new Date(a.lastModified).getTime() || 0;
+                        const timeB = new Date(b.lastModified).getTime() || 0;
+                        return timeB - timeA;
+                    });
+                    return result;
+                }
+            },
+            mounted() {
+                this.loadTheme();
+                this.loadBuckets();
+            },
+            methods: {
+                loadTheme() {
+                    const savedTheme = localStorage.getItem('theme');
+                    this.isDarkMode = savedTheme === 'dark';
+                    this.applyTheme();
+                },
+                toggleTheme() {
+                    this.isDarkMode = !this.isDarkMode;
+                    localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+                    this.applyTheme();
+                },
+                applyTheme() {
+                    if (this.isDarkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                },
+                async loadBuckets() {
+                    try {
+                        const response = await axios.get('/api/storage/buckets');
+                        if (response.data.success) {
+                            this.buckets = response.data.data;
+                            if (this.buckets.length > 0 && !this.currentBucket) {
+                                const savedBucket = localStorage.getItem('currentBucket');
+                                if (savedBucket && this.buckets.includes(savedBucket)) {
+                                    this.currentBucket = savedBucket;
+                                } else {
+                                    this.currentBucket = this.buckets[0];
+                                }
+                                await this.loadFiles();
+                            }
+                        } else {
+                            this.showToast('error', '加载存储桶失败: ' + response.data.message);
+                        }
+                    } catch (error) {
+                        console.error('加载存储桶失败:', error);
+                        this.showToast('error', '无法连接到服务器');
+                    }
+                },
+                async selectBucket(bucket) {
+                    this.currentBucket = bucket;
+                    localStorage.setItem('currentBucket', bucket);
+                    this.currentPath = '';
+                    await this.loadFiles();
+                },
+                async loadFiles() {
+                    if (!this.currentBucket) return;
+                    this.loading = true;
+                    try {
+                        const requestData = {
+                            bucketName: this.currentBucket,
+                            prefix: this.currentPath,
+                            delimiter: '/',
+                            pageSize: 1000
+                        };
+                        const response = await axios.post('/api/storage/files/list', requestData);
+
+                        // DEBUG: Log API response
+                        console.log('=== API Response Debug ===');
+                        console.log('Full response:', response.data);
+                        console.log('Folders:', response.data.data?.folders);
+                        console.log('Folder count:', response.data.data?.folders?.length);
+                        console.log('Files:', response.data.data?.files);
+                        console.log('File count:', response.data.data?.files?.length);
+                        console.log('========================');
+
+                        if (response.data.success) {
+                            const data = response.data.data;
+                            const newFiles = [];
+                            if (data.folders && data.folders.length > 0) {
+                                data.folders.forEach(folder => {
+                                    newFiles.push({
+                                        key: folder.key,
+                                        name: folder.name,
+                                        isFolder: true,
+                                        size: 0,
+                                        lastModified: new Date()
+                                    });
+                                });
+                            }
+                            if (data.files && data.files.length > 0) {
+                                data.files.forEach(file => {
+                                    let fileName = file.key;
+                                    if (this.currentPath && fileName.startsWith(this.currentPath)) {
+                                        fileName = fileName.substring(this.currentPath.length);
+                                    }
+                                    if (fileName.startsWith('/')) {
+                                        fileName = fileName.substring(1);
+                                    }
+
+                                    // 过滤掉子目录中的文件（只显示当前目录层级的文件）
+                                    if (fileName && !fileName.includes('/')) {
+                                        newFiles.push({
+                                            key: file.key,
+                                            name: fileName,
+                                            size: file.size || 0,
+                                            lastModified: file.lastModified,
+                                            storageClass: file.storageClass,
+                                            isFolder: false
+                                        });
+                                    }
+                                });
+                            }
+                            this.files = newFiles;
+                        } else {
+                            this.showToast('error', '加载文件列表失败: ' + response.data.message);
+                        }
+                    } catch (error) {
+                        console.error('加载文件列表失败:', error);
+                        this.showToast('error', '无法加载文件列表');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                navigateToPath(path) {
+                    this.currentPath = path;
+                    this.loadFiles();
+                },
+                getPathUpTo(index) {
+                    const parts = this.currentPath.split('/').filter(part => part);
+                    if (index >= 0 && index < parts.length) {
+                        return parts.slice(0, index + 1).join('/') + '/';
+                    }
+                    return '';
+                },
+                handleFileClick(file) {
+                    if (file.isFolder) {
+                        this.navigateToPath(file.key);
+                    } else {
+                        this.selectedFile = file;
+                    }
+                },
+                handleSearch() {
+                    // Search handled by computed property
+                },
+                handleFileSelect(event) {
+                    this.uploadFiles = Array.from(event.target.files);
+                },
+                async doUploadFiles() {
+                    if (this.uploadFiles.length === 0) return;
+                    this.showUploadDialog = false;
+                    let successCount = 0;
+                    let failCount = 0;
+                    for (let file of this.uploadFiles) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('bucketName', this.currentBucket);
+                            if (this.currentPath) {
+                                formData.append('objectKey', this.currentPath + file.name);
+                            }
+                            const response = await axios.post('/api/storage/upload', formData, {
+                                headers: { 'Content-Type': 'multipart/form-data' }
+                            });
+                            if (response.data.success) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                                console.error(`上传失败: ${file.name}`, response.data.message);
+                            }
+                        } catch (error) {
+                            failCount++;
+                            console.error(`上传失败: ${file.name}`, error);
+                        }
+                    }
+                    if (successCount > 0) {
+                        this.showToast('success', `成功上传 ${successCount} 个文件`);
+                        await this.loadFiles();
+                    }
+                    if (failCount > 0) {
+                        this.showToast('error', `${failCount} 个文件上传失败`);
+                    }
+                    this.uploadFiles = [];
+                },
+                async downloadFile(file) {
+                    try {
+                        const url = `/api/storage/download?bucketName=${encodeURIComponent(this.currentBucket)}&objectKey=${encodeURIComponent(file.key)}`;
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = file.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    } catch (error) {
+                        console.error('下载文件失败:', error);
+                        this.showToast('error', '下载文件失败');
+                    }
+                },
+                async deleteFile(file) {
+                    if (!confirm(`确定要删除 ${file.name} 吗？此操作不可恢复。`)) {
+                        return;
+                    }
+                    try {
+                        const response = await axios.delete('/api/storage/files', {
+                            params: {
+                                bucketName: this.currentBucket,
+                                objectKey: file.key
+                            }
+                        });
+                        if (response.data.success) {
+                            this.showToast('success', '文件已删除');
+                            this.fileDetailVisible = false;
+                            await this.loadFiles();
+                        } else {
+                            this.showToast('error', '删除失败: ' + response.data.message);
+                        }
+                    } catch (error) {
+                        console.error('删除文件失败:', error);
+                        this.showToast('error', '删除文件失败');
+                    }
+                },
+                async createFolder() {
+                    if (!this.folderName.trim()) {
+                        this.showToast('error', '请输入文件夹名称');
+                        return;
+                    }
+                    try {
+                        const folderPath = this.currentPath + this.folderName.trim() + '/';
+                        const response = await axios.post('/api/storage/folder', null, {
+                            params: {
+                                bucketName: this.currentBucket,
+                                folderPath: folderPath
+                            }
+                        });
+                        if (response.data.success) {
+                            this.showToast('success', '文件夹已创建');
+                            this.showCreateFolderDialog = false;
+                            this.folderName = '';
+                            await this.loadFiles();
+                        } else {
+                            this.showToast('error', '创建失败: ' + response.data.message);
+                        }
+                    } catch (error) {
+                        console.error('创建文件夹失败:', error);
+                        this.showToast('error', '创建文件夹失败');
+                    }
+                },
+                showFileDetail(file) {
+                    this.selectedFile = file;
+                    this.fileDetailVisible = true;
+                },
+                getFileIcon(file) {
+                    if (file.isFolder) {
+                        return 'bi-folder-fill';
+                    }
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const iconMap = {
+                        'png': 'bi-file-image', 'jpg': 'bi-file-image', 'jpeg': 'bi-file-image',
+                        'gif': 'bi-file-image', 'svg': 'bi-file-image',
+                        'pdf': 'bi-file-pdf',
+                        'doc': 'bi-file-word', 'docx': 'bi-file-word',
+                        'xls': 'bi-file-excel', 'xlsx': 'bi-file-excel',
+                        'ppt': 'bi-file-ppt', 'pptx': 'bi-file-ppt',
+                        'zip': 'bi-file-zip', 'rar': 'bi-file-zip', '7z': 'bi-file-zip',
+                        'mp4': 'bi-file-play', 'avi': 'bi-file-play', 'mov': 'bi-file-play',
+                        'mp3': 'bi-file-music', 'wav': 'bi-file-music', 'flac': 'bi-file-music',
+                        'txt': 'bi-file-text', 'md': 'bi-file-text',
+                        'js': 'bi-file-code', 'ts': 'bi-file-code', 'html': 'bi-file-code',
+                        'css': 'bi-file-code', 'json': 'bi-file-code', 'xml': 'bi-file-code',
+                        'yml': 'bi-file-code', 'yaml': 'bi-file-code'
+                    };
+                    return iconMap[ext] || 'bi-file-earmark';
+                },
+                getFileColor(file) {
+                    if (file.isFolder) {
+                        return 'text-yellow-500 dark:text-yellow-400';
+                    }
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const colorMap = {
+                        'png': 'text-purple-500', 'jpg': 'text-purple-500', 'jpeg': 'text-purple-500',
+                        'gif': 'text-purple-500', 'svg': 'text-purple-500',
+                        'pdf': 'text-red-500',
+                        'doc': 'text-blue-500', 'docx': 'text-blue-500',
+                        'xls': 'text-green-500', 'xlsx': 'text-green-500',
+                        'ppt': 'text-orange-500', 'pptx': 'text-orange-500',
+                        'zip': 'text-gray-500', 'rar': 'text-gray-500',
+                        'mp4': 'text-pink-500', 'mp3': 'text-indigo-500',
+                        'txt': 'text-gray-600', 'js': 'text-yellow-600',
+                        'html': 'text-orange-600', 'css': 'text-blue-600'
+                    };
+                    return colorMap[ext] || 'text-gray-500';
+                },
+                formatFileSize(bytes) {
+                    if (bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+                formatDate(date) {
+                    if (!date) return '';
+                    try {
+                        return new Date(date).toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch {
+                        return '';
+                    }
+                },
+                showToast(type, message) {
+                    const id = this.toastId++;
+                    this.toasts.push({ id, type, message });
+                    setTimeout(() => {
+                        this.removeToast(id);
+                    }, 3000);
+                },
+                removeToast(id) {
+                    const index = this.toasts.findIndex(t => t.id === id);
+                    if (index > -1) {
+                        this.toasts.splice(index, 1);
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
