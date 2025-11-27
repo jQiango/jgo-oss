@@ -1,15 +1,19 @@
-# One-Agent-4J Storage
+# S3 File Nexus
 
 <div align="center">
 
+[![GitHub release](https://img.shields.io/github/release/yourusername/s3-file-nexus.svg)](https://github.com/yourusername/s3-file-nexus/releases)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.8-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-42b883.svg)](https://vuejs.org/)
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**企业级S3对象存储管理系统**
+**🚀 Enterprise-grade S3 Object Storage Management System**
 
-一个功能强大、界面现代化的对象存储文件管理系统，支持AWS S3、MinIO、阿里云OSS等所有S3协议兼容存储。
+A powerful, modern web-based file manager for S3-compatible object storage.
+Connect all your cloud storage in one place with a beautiful interface.
+
+**企业级S3对象存储管理系统 - 连接你的所有云存储**
 
 [功能特性](#-核心功能) • [快速开始](#-快速开始) • [技术架构](#-技术架构) • [API文档](#-api-文档) • [配置说明](#-配置说明)
 
@@ -533,8 +537,8 @@ GET /api/storage/stats/trend/{configId}?days=7
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/yourusername/one-agent-4j-storage.git
-cd one-agent-4j-storage
+git clone https://github.com/yourusername/s3-file-nexus.git
+cd s3-file-nexus
 
 # 2. 配置数据库（可选）
 mysql -u root -p < src/main/resources/init/storage.sql
@@ -707,8 +711,8 @@ storage:
 
 ## 📞 联系方式
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/one-agent-4j-storage/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/one-agent-4j-storage/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/s3-file-nexus/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/s3-file-nexus/discussions)
 
 ---
 
@@ -716,6 +720,10 @@ storage:
 
 **⭐ 如果这个项目对您有帮助，请给个Star支持一下！⭐**
 
-Made with ❤️ by Claude Code
+🔥 **Like a Phoenix, Rising to Excellence** 🔥
+
+Made with ❤️ by S3 File Nexus Team
+
+[Homepage](https://github.com/yourusername/s3-file-nexus) • [Documentation](README.md) • [Report Bug](https://github.com/yourusername/s3-file-nexus/issues)
 
 </div>
