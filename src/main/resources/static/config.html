@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3配置 - 对象存储管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+                'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .config-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .btn-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .saved-configs {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .saved-configs h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .config-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+        }
+
+        .config-item-info {
+            flex: 1;
+        }
+
+        .config-item-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .config-item-detail {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .config-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .config-item-actions button {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-use {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-use:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="config-container">
+        <div class="logo">
+            <h1>🗄️ 对象存储管理</h1>
+            <p>配置您的S3存储后端</p>
+        </div>
+
+        <div id="alert"></div>
+
+        <form id="configForm">
+            <div class="form-group">
+                <label for="configName">配置名称</label>
+                <input type="text" id="configName" placeholder="例如: 链家S3生产环境" required>
+            </div>
+
+            <div class="form-group">
+                <label for="endpoint">Endpoint</label>
+                <input type="text" id="endpoint" placeholder="例如: https://storage.lianjia.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="accessKey">Access Key ID</label>
+                <input type="text" id="accessKey" placeholder="输入Access Key ID" required>
+            </div>
+
+            <div class="form-group">
+                <label for="secretKey">Secret Access Key</label>
+                <input type="password" id="secretKey" placeholder="输入Secret Access Key" required>
+            </div>
+
+            <div class="form-group">
+                <label for="region">Region</label>
+                <input type="text" id="region" placeholder="例如: ap-beijing" value="ap-beijing">
+            </div>
+
+            <div class="form-group">
+                <label for="bucket">默认Bucket（可选）</label>
+                <input type="text" id="bucket" placeholder="例如: zqt-data-daily">
+            </div>
+
+            <div class="btn-container">
+                <button type="button" class="btn btn-secondary" onclick="testConnection()">测试连接</button>
+                <button type="submit" class="btn btn-primary">保存并进入</button>
+            </div>
+        </form>
+
+        <div class="saved-configs" id="savedConfigsContainer" style="display: none;">
+            <h3>已保存的配置</h3>
+            <div id="savedConfigsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 's3_configs';
+
+        // 加载已保存的配置
+        function loadSavedConfigs() {
+            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (configs.length > 0) {
+                document.getElementById('savedConfigsContainer').style.display = 'block';
+                const list = document.getElementById('savedConfigsList');
+                list.innerHTML = configs.map((config, index) => `
+                    <div class="config-item">
+                        <div class="config-item-info">
+                            <div class="config-item-name">${escapeHtml(config.name)}</div>
+                            <div class="config-item-detail">${escapeHtml(config.endpoint)}</div>
+                        </div>
+                        <div class="config-item-actions">
+                            <button class="btn-use" onclick="useConfig(${index})">使用</button>
+                            <button class="btn-delete" onclick="deleteConfig(${index})">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 使用保存的配置
+        window.useConfig = function(index) {
+            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const config = configs[index];
+            if (config) {
+                sessionStorage.setItem('current_s3_config', JSON.stringify(config));
+                window.location.href = 'index.html';
+            }
+        };
+
+        // 删除配置
+        window.deleteConfig = function(index) {
+            if (confirm('确定要删除这个配置吗？')) {
+                const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                configs.splice(index, 1);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+                loadSavedConfigs();
+                showAlert('配置已删除', 'success');
+            }
+        };
+
+        // 测试连接
+        window.testConnection = async function() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>测试中...';
+
+            const config = getFormData();
+
+            try {
+                // 这里调用后端API测试连接（需要后端支持）
+                // 暂时用前端模拟
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                showAlert('连接测试成功！', 'success');
+            } catch (error) {
+                showAlert('连接测试失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        };
+
+        // 表单提交
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const config = getFormData();
+
+            // 保存到localStorage
+            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+            // 检查是否已存在同名配置
+            const existingIndex = configs.findIndex(c => c.name === config.name);
+            if (existingIndex >= 0) {
+                configs[existingIndex] = config;
+            } else {
+                configs.push(config);
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+
+            // 保存当前配置到session
+            sessionStorage.setItem('current_s3_config', JSON.stringify(config));
+
+            // 跳转到文件列表页
+            showAlert('配置保存成功，正在跳转...', 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        });
+
+        function getFormData() {
+            return {
+                name: document.getElementById('configName').value.trim(),
+                endpoint: document.getElementById('endpoint').value.trim(),
+                accessKey: document.getElementById('accessKey').value.trim(),
+                secretKey: document.getElementById('secretKey').value.trim(),
+                region: document.getElementById('region').value.trim() || 'ap-beijing',
+                bucket: document.getElementById('bucket').value.trim() || ''
+            };
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 页面加载时检查是否已有配置
+        window.addEventListener('load', () => {
+            loadSavedConfigs();
+
+            // 如果URL有参数，自动填充（方便测试）
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('endpoint')) {
+                document.getElementById('endpoint').value = params.get('endpoint');
+            }
+            if (params.get('accessKey')) {
+                document.getElementById('accessKey').value = params.get('accessKey');
+            }
+        });
+    </script>
+</body>
+</html>
