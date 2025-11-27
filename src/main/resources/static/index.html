@@ -529,32 +529,31 @@
                 </div>
 
                 <!-- 网格视图 -->
-                <div v-else-if="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div v-else-if="viewMode === 'grid'" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9 gap-2">
                     <div
                         v-for="file in displayFiles"
                         :key="file.key"
                         @click="handleFileClick(file)"
                         @contextmenu="showContextMenu($event, 'file', file)"
-                        class="file-card group relative flex flex-col items-center p-4 border border-gray-200 bg-white rounded-lg cursor-pointer hover:border-blue-400">
+                        class="file-card group relative flex flex-col items-center p-2 border border-gray-200 bg-white rounded-lg cursor-pointer hover:border-blue-400">
                         <!-- 文件图标 -->
-                        <i :class="[getFileIcon(file), getFileColor(file)]" class="text-5xl mb-3"></i>
+                        <i :class="[getFileIcon(file), getFileColor(file)]" class="text-3xl mb-2"></i>
 
                         <!-- 文件名 -->
-                        <h3 class="text-sm font-medium text-gray-900 text-center truncate w-full px-2" :title="file.name">
+                        <h3 class="text-xs font-medium text-gray-900 text-center truncate w-full px-1" :title="file.name">
                             {{ file.name }}
                         </h3>
 
                         <!-- 文件信息 -->
-                        <div v-if="!file.isFolder" class="text-xs text-gray-600 mt-1 text-center">
-                            <div>{{ formatFileSize(file.size) }}</div>
-                            <div class="truncate w-full px-2">{{ formatDate(file.lastModified) }}</div>
+                        <div v-if="!file.isFolder" class="text-xs text-gray-600 mt-0.5 text-center">
+                            <div class="text-xs">{{ formatFileSize(file.size) }}</div>
                         </div>
-                        <div v-else-if="file.isFolder && folderSizes[file.key]" class="text-xs text-gray-600 mt-1 text-center">
-                            <div><i class="bi bi-hdd"></i> {{ formatFileSize(folderSizes[file.key]) }}</div>
+                        <div v-else-if="file.isFolder && folderSizes[file.key]" class="text-xs text-gray-600 mt-0.5 text-center">
+                            <div class="text-xs"><i class="bi bi-hdd"></i> {{ formatFileSize(folderSizes[file.key]) }}</div>
                         </div>
 
                         <!-- 操作按钮（悬停显示） -->
-                        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg shadow-lg p-1">
+                        <div class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg shadow-lg p-0.5">
                             <button
                                 v-if="!file.isFolder && canPreview(file)"
                                 @click.stop="previewFile(file)"
