@@ -45,3 +45,4 @@ logs/
 /.claude/
 *.md
 application-storage.yml
+/node_modules/
