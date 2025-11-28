@@ -1,426 +1,419 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S3配置 - 对象存储管理</title>
+    <title>S3 文件管理器 - 配置</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        [v-cloak] {
+            display: none !important;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-                'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        @keyframes slide-up {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .animate-slide-up {
+            animation: slide-up 0.3s ease-out;
         }
 
-        .config-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            width: 100%;
-            padding: 40px;
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out;
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
+        .config-card {
+            transition: all 0.2s ease;
         }
-
-        .logo h1 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .logo p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-group input::placeholder {
-            color: #999;
-        }
-
-        .btn-container {
-            margin-top: 30px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
+        .config-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-        }
-
-        .btn-secondary:hover {
-            background: #e8e8e8;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .saved-configs {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 1px solid #eee;
-        }
-
-        .saved-configs h3 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .config-item {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .config-item:hover {
-            background: #e9ecef;
-            transform: translateX(4px);
-        }
-
-        .config-item-info {
-            flex: 1;
-        }
-
-        .config-item-name {
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .config-item-detail {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .config-item-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .config-item-actions button {
-            padding: 4px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-use {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-use:hover {
-            background: #5568d3;
-        }
-
-        .btn-delete {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-delete:hover {
-            background: #c82333;
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 0.6s linear infinite;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body>
-    <div class="config-container">
-        <div class="logo">
-            <h1>🗄️ 对象存储管理</h1>
-            <p>配置您的S3存储后端</p>
-        </div>
-
-        <div id="alert"></div>
-
-        <form id="configForm">
-            <div class="form-group">
-                <label for="configName">配置名称</label>
-                <input type="text" id="configName" placeholder="例如: 链家S3生产环境" required>
+<body class="h-full bg-gradient-to-br from-blue-50 via-white to-blue-50">
+    <div id="app" v-cloak class="min-h-full flex items-center justify-center p-6">
+        <!-- 主容器 -->
+        <div class="w-full max-w-2xl">
+            <!-- Logo和标题 -->
+            <div class="text-center mb-8 animate-fade-in">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg mb-4">
+                    <i class="bi bi-cloud-fill text-white text-4xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">S3 文件管理器</h1>
+                <p class="text-gray-600">配置您的对象存储连接</p>
             </div>
 
-            <div class="form-group">
-                <label for="endpoint">Endpoint</label>
-                <input type="text" id="endpoint" placeholder="例如: https://storage.lianjia.com" required>
+            <!-- 配置表单卡片 -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-6 animate-slide-up">
+                <!-- 提示信息 -->
+                <div v-if="alert.show"
+                     :class="alert.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'"
+                     class="mb-6 p-4 rounded-lg border flex items-center gap-3">
+                    <i :class="alert.type === 'success' ? 'bi-check-circle-fill text-green-600' : 'bi-exclamation-circle-fill text-red-600'"
+                       class="text-xl"></i>
+                    <span class="flex-1">{{ alert.message }}</span>
+                    <button @click="alert.show = false" class="text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <form @submit.prevent="saveConfig">
+                    <!-- Endpoint -->
+                    <div class="mb-5">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-link-45deg text-blue-600"></i>
+                            服务端点 (Endpoint)
+                        </label>
+                        <input
+                            v-model="config.endpoint"
+                            type="text"
+                            placeholder="https://s3.amazonaws.com 或自定义地址"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            required>
+                    </div>
+
+                    <!-- Access Key -->
+                    <div class="mb-5">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-key-fill text-blue-600"></i>
+                            Access Key ID
+                        </label>
+                        <input
+                            v-model="config.accessKey"
+                            type="text"
+                            placeholder="输入您的 Access Key ID"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-mono"
+                            required>
+                    </div>
+
+                    <!-- Secret Key -->
+                    <div class="mb-5">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <i class="bi bi-shield-lock-fill text-blue-600"></i>
+                            Secret Access Key
+                        </label>
+                        <div class="relative">
+                            <input
+                                v-model="config.secretKey"
+                                :type="showSecret ? 'text' : 'password'"
+                                placeholder="输入您的 Secret Access Key"
+                                class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-mono"
+                                required>
+                            <button
+                                type="button"
+                                @click="showSecret = !showSecret"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                <i :class="showSecret ? 'bi-eye-slash' : 'bi-eye'" class="text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Region 和 Bucket 并排 -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <!-- Region -->
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <i class="bi bi-globe2 text-blue-600"></i>
+                                区域 (Region)
+                            </label>
+                            <input
+                                v-model="config.region"
+                                type="text"
+                                placeholder="ap-beijing"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                        </div>
+
+                        <!-- Default Bucket -->
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <i class="bi bi-database text-blue-600"></i>
+                                默认桶 <span class="text-xs text-gray-500">(可选)</span>
+                            </label>
+                            <input
+                                v-model="config.bucket"
+                                type="text"
+                                placeholder="my-bucket"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <!-- 按钮组 -->
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            @click="testConnection"
+                            :disabled="testing"
+                            class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i :class="testing ? 'bi-arrow-clockwise animate-spin' : 'bi-wifi'" class="text-lg"></i>
+                            <span>{{ testing ? '测试中...' : '测试连接' }}</span>
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="saving"
+                            class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i :class="saving ? 'bi-arrow-clockwise animate-spin' : 'bi-check-circle'" class="text-lg"></i>
+                            <span>{{ saving ? '保存中...' : '保存并进入' }}</span>
+                        </button>
+                    </div>
+                </form>
             </div>
 
-            <div class="form-group">
-                <label for="accessKey">Access Key ID</label>
-                <input type="text" id="accessKey" placeholder="输入Access Key ID" required>
+            <!-- 已保存的配置 -->
+            <div v-if="savedConfigs.length > 0" class="bg-white rounded-2xl shadow-xl p-6 animate-slide-up">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="bi bi-clock-history text-blue-600"></i>
+                        最近使用的配置
+                    </h3>
+                    <span class="text-sm text-gray-500">{{ savedConfigs.length }} 个</span>
+                </div>
+
+                <div class="space-y-2">
+                    <div
+                        v-for="(item, index) in savedConfigs"
+                        :key="index"
+                        class="config-card flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-400 cursor-pointer group">
+                        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                            <i class="bi bi-cloud-fill text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0" @click="useConfig(index)">
+                            <div class="font-medium text-gray-900 truncate">{{ item.name }}</div>
+                            <div class="text-sm text-gray-500 truncate">{{ item.endpoint }}</div>
+                        </div>
+                        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                @click.stop="useConfig(index)"
+                                class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors">
+                                <i class="bi bi-box-arrow-in-right"></i> 使用
+                            </button>
+                            <button
+                                @click.stop="deleteConfig(index)"
+                                class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="secretKey">Secret Access Key</label>
-                <input type="password" id="secretKey" placeholder="输入Secret Access Key" required>
+            <!-- 底部提示 -->
+            <div class="mt-6 text-center text-sm text-gray-600">
+                <i class="bi bi-info-circle"></i>
+                配置将保存在本地浏览器中，不会上传到服务器
             </div>
-
-            <div class="form-group">
-                <label for="region">Region</label>
-                <input type="text" id="region" placeholder="例如: ap-beijing" value="ap-beijing">
-            </div>
-
-            <div class="form-group">
-                <label for="bucket">默认Bucket（可选）</label>
-                <input type="text" id="bucket" placeholder="例如: zqt-data-daily">
-            </div>
-
-            <div class="btn-container">
-                <button type="button" class="btn btn-secondary" onclick="testConnection()">测试连接</button>
-                <button type="submit" class="btn btn-primary">保存并进入</button>
-            </div>
-        </form>
-
-        <div class="saved-configs" id="savedConfigsContainer" style="display: none;">
-            <h3>已保存的配置</h3>
-            <div id="savedConfigsList"></div>
         </div>
     </div>
 
+    <!-- Vue 3 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+
     <script>
+        const { createApp } = Vue;
         const STORAGE_KEY = 's3_configs';
 
-        // 加载已保存的配置
-        function loadSavedConfigs() {
-            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (configs.length > 0) {
-                document.getElementById('savedConfigsContainer').style.display = 'block';
-                const list = document.getElementById('savedConfigsList');
-                list.innerHTML = configs.map((config, index) => `
-                    <div class="config-item">
-                        <div class="config-item-info">
-                            <div class="config-item-name">${escapeHtml(config.name)}</div>
-                            <div class="config-item-detail">${escapeHtml(config.endpoint)}</div>
-                        </div>
-                        <div class="config-item-actions">
-                            <button class="btn-use" onclick="useConfig(${index})">使用</button>
-                            <button class="btn-delete" onclick="deleteConfig(${index})">删除</button>
-                        </div>
-                    </div>
-                `).join('');
+        createApp({
+            data() {
+                return {
+                    config: {
+                        name: '',
+                        endpoint: '',
+                        accessKey: '',
+                        secretKey: '',
+                        region: 'ap-beijing',
+                        bucket: ''
+                    },
+                    savedConfigs: [],
+                    showSecret: false,
+                    testing: false,
+                    saving: false,
+                    alert: {
+                        show: false,
+                        type: 'success',
+                        message: ''
+                    }
+                };
+            },
+            mounted() {
+                this.loadSavedConfigs();
+            },
+            methods: {
+                loadSavedConfigs() {
+                    const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                    this.savedConfigs = configs;
+                },
+                showAlert(message, type = 'success') {
+                    this.alert = {
+                        show: true,
+                        type,
+                        message
+                    };
+                    setTimeout(() => {
+                        this.alert.show = false;
+                    }, 5000);
+                },
+                async testConnection() {
+                    // 验证必填字段
+                    if (!this.config.endpoint || !this.config.accessKey || !this.config.secretKey) {
+                        this.showAlert('请填写完整的连接信息', 'error');
+                        return;
+                    }
+
+                    this.testing = true;
+                    try {
+                        const response = await fetch('/api/storage/config/test', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.config)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.showAlert('连接测试成功！', 'success');
+                        } else {
+                            this.showAlert('连接测试失败: ' + (result.message || '未知错误'), 'error');
+                        }
+                    } catch (error) {
+                        this.showAlert('连接测试失败: ' + error.message, 'error');
+                    } finally {
+                        this.testing = false;
+                    }
+                },
+                async saveConfig() {
+                    // 自动生成配置名称
+                    if (!this.config.name) {
+                        const now = new Date();
+                        this.config.name = `配置-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+                    }
+
+                    // 验证必填字段
+                    if (!this.config.endpoint || !this.config.accessKey || !this.config.secretKey) {
+                        this.showAlert('请填写完整的配置信息', 'error');
+                        return;
+                    }
+
+                    this.saving = true;
+                    try {
+                        const response = await fetch('/api/storage/config/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.config)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            // 保存到localStorage
+                            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                            const existingIndex = configs.findIndex(c => c.name === this.config.name);
+
+                            if (existingIndex >= 0) {
+                                configs[existingIndex] = { ...this.config };
+                            } else {
+                                configs.push({ ...this.config });
+                            }
+
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+                            sessionStorage.setItem('current_s3_config', JSON.stringify(this.config));
+
+                            this.showAlert('配置保存成功，正在跳转...', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'index.html';
+                            }, 800);
+                        } else {
+                            this.showAlert('配置保存失败: ' + (result.message || '未知错误'), 'error');
+                        }
+                    } catch (error) {
+                        this.showAlert('配置保存失败: ' + error.message, 'error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+                async useConfig(index) {
+                    const config = this.savedConfigs[index];
+                    if (!config) return;
+
+                    try {
+                        const response = await fetch('/api/storage/config/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(config)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            sessionStorage.setItem('current_s3_config', JSON.stringify(config));
+                            window.location.href = 'index.html';
+                        } else {
+                            this.showAlert('加载配置失败: ' + (result.message || '未知错误'), 'error');
+                        }
+                    } catch (error) {
+                        this.showAlert('加载配置失败: ' + error.message, 'error');
+                    }
+                },
+                deleteConfig(index) {
+                    if (confirm('确定要删除这个配置吗？')) {
+                        const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                        configs.splice(index, 1);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+                        this.loadSavedConfigs();
+                        this.showAlert('配置已删除', 'success');
+                    }
+                }
             }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // 使用保存的配置
-        window.useConfig = function(index) {
-            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            const config = configs[index];
-            if (config) {
-                sessionStorage.setItem('current_s3_config', JSON.stringify(config));
-                window.location.href = 'index.html';
-            }
-        };
-
-        // 删除配置
-        window.deleteConfig = function(index) {
-            if (confirm('确定要删除这个配置吗？')) {
-                const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-                configs.splice(index, 1);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
-                loadSavedConfigs();
-                showAlert('配置已删除', 'success');
-            }
-        };
-
-        // 测试连接
-        window.testConnection = async function() {
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span>测试中...';
-
-            const config = getFormData();
-
-            try {
-                // 这里调用后端API测试连接（需要后端支持）
-                // 暂时用前端模拟
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                showAlert('连接测试成功！', 'success');
-            } catch (error) {
-                showAlert('连接测试失败: ' + error.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        };
-
-        // 表单提交
-        document.getElementById('configForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const config = getFormData();
-
-            // 保存到localStorage
-            const configs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-
-            // 检查是否已存在同名配置
-            const existingIndex = configs.findIndex(c => c.name === config.name);
-            if (existingIndex >= 0) {
-                configs[existingIndex] = config;
-            } else {
-                configs.push(config);
-            }
-
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
-
-            // 保存当前配置到session
-            sessionStorage.setItem('current_s3_config', JSON.stringify(config));
-
-            // 跳转到文件列表页
-            showAlert('配置保存成功，正在跳转...', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 500);
-        });
-
-        function getFormData() {
-            return {
-                name: document.getElementById('configName').value.trim(),
-                endpoint: document.getElementById('endpoint').value.trim(),
-                accessKey: document.getElementById('accessKey').value.trim(),
-                secretKey: document.getElementById('secretKey').value.trim(),
-                region: document.getElementById('region').value.trim() || 'ap-beijing',
-                bucket: document.getElementById('bucket').value.trim() || ''
-            };
-        }
-
-        function showAlert(message, type) {
-            const alertDiv = document.getElementById('alert');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            alertDiv.style.display = 'block';
-
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // 页面加载时检查是否已有配置
-        window.addEventListener('load', () => {
-            loadSavedConfigs();
-
-            // 如果URL有参数，自动填充（方便测试）
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('endpoint')) {
-                document.getElementById('endpoint').value = params.get('endpoint');
-            }
-            if (params.get('accessKey')) {
-                document.getElementById('accessKey').value = params.get('accessKey');
-            }
-        });
+        }).mount('#app');
     </script>
 </body>
 </html>
