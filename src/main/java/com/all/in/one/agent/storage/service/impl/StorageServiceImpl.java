@@ -49,10 +49,20 @@ public class StorageServiceImpl implements StorageService {
     public StorageConfigProperties.Backend getBackend(String backendName) {
         StorageConfigProperties.Backend backend = configProperties.getBackends().get(backendName);
         if (backend == null) {
-            throw new RuntimeException("存储后端不存在: " + backendName);
+            throw new RuntimeException("存储后端不存在，请先配置 S3 连接信息: " + backendName);
         }
         if (!Boolean.TRUE.equals(backend.getEnabled())) {
             throw new RuntimeException("存储后端未启用: " + backendName);
+        }
+        // 检查必要的配置是否完整
+        if (backend.getAccessKeyId() == null || backend.getAccessKeyId().isEmpty()) {
+            throw new RuntimeException("Access Key ID 未配置，请先配置 S3 连接信息");
+        }
+        if (backend.getAccessKeySecret() == null || backend.getAccessKeySecret().isEmpty()) {
+            throw new RuntimeException("Secret Access Key 未配置，请先配置 S3 连接信息");
+        }
+        if (backend.getEndpoint() == null || backend.getEndpoint().isEmpty()) {
+            throw new RuntimeException("Endpoint 未配置，请先配置 S3 连接信息");
         }
         return backend;
     }

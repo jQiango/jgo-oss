@@ -1211,7 +1211,7 @@
                 }
             },
             mounted() {
-                this.loadBuckets();
+                this.checkConfigAndLoad();
                 // 点击其他地方隐藏右键菜单
                 document.addEventListener('click', () => {
                     this.contextMenu.show = false;
@@ -1222,6 +1222,42 @@
             methods: {
                 goToConfig() {
                     window.location.href = 'config.html';
+                },
+                // 检查配置并加载
+                async checkConfigAndLoad() {
+                    try {
+                        await this.loadBuckets();
+                    } catch (error) {
+                        // 如果加载失败，检查是否是配置问题
+                        this.handleConfigError(error);
+                    }
+                },
+                // 处理配置错误
+                handleConfigError(error) {
+                    const errorMsg = error.message || error.toString();
+                    // 检查是否是配置相关的错误
+                    const configErrors = [
+                        '存储后端不存在',
+                        '未配置默认存储后端',
+                        '存储后端未启用',
+                        'Access Key',
+                        'credentials',
+                        'authentication',
+                        '认证失败',
+                        '配置'
+                    ];
+
+                    const isConfigError = configErrors.some(keyword =>
+                        errorMsg.toLowerCase().includes(keyword.toLowerCase())
+                    );
+
+                    if (isConfigError) {
+                        console.log('检测到配置错误，跳转到配置页面');
+                        this.showToast('error', '请先配置 S3 连接信息');
+                        setTimeout(() => {
+                            window.location.href = 'config.html';
+                        }, 1500);
+                    }
                 },
                 async loadBuckets() {
                     try {
@@ -1237,10 +1273,21 @@
                                 }
                                 await this.loadFiles();
                             }
+                        } else {
+                            // 后端返回失败
+                            throw new Error(response.data.message || '加载失败');
                         }
                     } catch (error) {
                         console.error('加载存储桶失败:', error);
-                        this.showToast('error', '无法连接到服务器');
+
+                        // 检查是否是配置错误
+                        if (error.response) {
+                            const errorMsg = error.response.data?.message || error.message;
+                            throw new Error(errorMsg);
+                        } else {
+                            this.showToast('error', '无法连接到服务器');
+                            throw error;
+                        }
                     }
                 },
                 async selectBucket(bucket) {
@@ -1296,9 +1343,17 @@
                                 });
                             }
                             this.files = newFiles;
+                        } else {
+                            // 后端返回失败
+                            throw new Error(response.data.message || '加载失败');
                         }
                     } catch (error) {
                         console.error('加载文件列表失败:', error);
+
+                        // 检查是否是配置错误
+                        const errorMsg = error.response?.data?.message || error.message;
+                        this.handleConfigError({ message: errorMsg });
+
                         this.showToast('error', '无法加载文件列表');
                     } finally {
                         this.loading = false;

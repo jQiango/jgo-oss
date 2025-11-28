@@ -53,6 +53,20 @@ public class DynamicConfigManager {
     }
 
     /**
+     * 检查动态配置是否完整
+     */
+    public boolean isConfigured() {
+        StorageConfigProperties.Backend backend = getDynamicConfig();
+        if (backend == null) {
+            return false;
+        }
+        // 检查必要字段是否已配置
+        return backend.getAccessKeyId() != null && !backend.getAccessKeyId().isEmpty()
+                && backend.getAccessKeySecret() != null && !backend.getAccessKeySecret().isEmpty()
+                && backend.getEndpoint() != null && !backend.getEndpoint().isEmpty();
+    }
+
+    /**
      * 清除动态配置
      */
     public void clearDynamicConfig() {
