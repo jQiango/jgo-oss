@@ -33,7 +33,7 @@ spring:
 # 存储模块配置
 storage:
   # 默认使用的存储后端
-  default-backend: lianjia-s3
+  default-backend: zqt-data-daily
 
   upload:
     max-file-size: 104857600  # 100MB
