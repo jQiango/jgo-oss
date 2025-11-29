@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S3 文件管理器</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="manifest" href="/manifest.json">
 
@@ -1857,6 +1858,15 @@
                     <span>复制完整路径</span>
                 </div>
                 <div class="context-menu-divider"></div>
+                <div class="context-menu-item" @click="singleFileMove(contextMenu.file); hideContextMenu()">
+                    <i class="bi bi-folder-symlink"></i>
+                    <span>移动到...</span>
+                </div>
+                <div v-if="!contextMenu.file.isFolder" class="context-menu-item" @click="singleFileCopy(contextMenu.file); hideContextMenu()">
+                    <i class="bi bi-files"></i>
+                    <span>复制到...</span>
+                </div>
+                <div class="context-menu-divider"></div>
                 <div class="context-menu-item danger" @click="deleteFile(contextMenu.file); hideContextMenu()">
                     <i class="bi bi-trash"></i>
                     <span>删除</span>
@@ -3503,6 +3513,24 @@
 
                         this.clearSelection();
                     }, 1000);
+                },
+                // 单个文件移动
+                async singleFileMove(file) {
+                    // 清空之前的选择
+                    this.clearSelection();
+                    // 选中当前文件
+                    this.selectedFiles.add(file.key);
+                    // 调用批量移动
+                    await this.batchMove();
+                },
+                // 单个文件复制
+                async singleFileCopy(file) {
+                    // 清空之前的选择
+                    this.clearSelection();
+                    // 选中当前文件
+                    this.selectedFiles.add(file.key);
+                    // 调用批量复制
+                    await this.batchCopyToBucket();
                 }
             }
         }).mount('#app');

@@ -1,16 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1200)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(10,0,0,10,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
     <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1"></stop>
+    </linearGradient>
+  <clipPath id="SvgjsClipPath1200"><rect width="1000" height="1000" x="0" y="0" rx="50" ry="50"></rect></clipPath></defs>
+
+  <!-- 云朵形状 -->
+  <path d="M 30 50 Q 30 35 45 35 Q 50 25 60 25 Q 75 25 80 40 Q 90 40 90 50 Q 90 60 80 60 L 35 60 Q 25 60 25 50 Q 25 45 30 45 Z" fill="url(#cloudGradient)"></path>
+
+  <!-- S3 文字 -->
+  <text x="50" y="58" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">S3</text>
+</svg></svg></g></g></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g><g transform="matrix(10,0,0,10,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1"></stop>
     </linearGradient>
   </defs>
 
   <!-- 云朵形状 -->
-  <path d="M 30 50 Q 30 35 45 35 Q 50 25 60 25 Q 75 25 80 40 Q 90 40 90 50 Q 90 60 80 60 L 35 60 Q 25 60 25 50 Q 25 45 30 45 Z"
-        fill="url(#cloudGradient)" />
+  <path d="M 30 50 Q 30 35 45 35 Q 50 25 60 25 Q 75 25 80 40 Q 90 40 90 50 Q 90 60 80 60 L 35 60 Q 25 60 25 50 Q 25 45 30 45 Z" fill="url(#cloudGradient)"></path>
 
   <!-- S3 文字 -->
-  <text x="50" y="58" font-family="Arial, sans-serif" font-size="24" font-weight="bold"
-        fill="white" text-anchor="middle">S3</text>
-</svg>
+  <text x="50" y="58" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">S3</text>
+</svg></svg></g></g></svg></g></svg>
